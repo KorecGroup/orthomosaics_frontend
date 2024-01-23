@@ -1,5 +1,4 @@
-from json import load, loads
-from pathlib import Path
+from json import loads
 
 from pandas import DataFrame, read_csv
 from requests import get, post
