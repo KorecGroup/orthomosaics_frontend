@@ -6,5 +6,5 @@ def encode_image(image_bytes: str) -> str:
     return b64encode(image_bytes).decode()
 
 
-def decode_image(image_b64: str) -> bytes:
-    return BytesIO(b64decode(image_b64)).getbuffer()
+def decode_image(image_b64: str) -> BytesIO:
+    return BytesIO(b64decode(image_b64))
