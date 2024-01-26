@@ -28,7 +28,9 @@ set_page_config(page_title="Orthomosaics", page_icon="📍")
 endpoint = "https://ortho-mosaic.azurewebsites.net/orthomosaic/"
 
 
-upload_tab, download_tab = tabs(["Upload", "Download"])
+upload_azure_tab, upload_local_tab, download_tab = tabs(
+    ["Upload (via Azure Storage)", "Upload (locally)", "Download"]
+)
 
 with download_tab:
     with form("Download Orthomosaic"):
@@ -62,8 +64,30 @@ with download_tab:
         if image_bytes:
             image(image_bytes)
 
+with upload_azure_tab:
+    with form("Upload Via Azure Storage"):
+        location = text_input("Location (name of folder in azure storage)")
+        submit_button = form_submit_button("Process")
+        if submit_button and location:
+            with status(f"Downloading images from Azure Storage: {location}..."), post(
+                url=f"{endpoint}folder/", json=dict(location=location), stream=True
+            ) as response_stream:
+                if response_stream.ok:
+                    try:
+                        for response in response_stream.iter_lines():
+                            result = loads(response)
+                            message = result["status_message"]
+                            if message.startswith("Progress="):
+                                success(message)
+                            else:
+                                info(message)
+                    except Exception as e:
+                        error(e)
+                else:
+                    error(response_stream.reason)
+                    error(loads(response_stream.json(), indent=2))
 
-with upload_tab:
+with upload_local_tab:
     with form("Upload Backdown Image"):
         uploaded_backdown_images = file_uploader(
             label="Backdown images to generate Orthomosaic and a single (csv) file to specify GPS and Camera settings",
@@ -190,7 +214,7 @@ with upload_tab:
                 n = len(image_files)
                 for i, image in enumerate(image_files):
                     progress((i + 1) / n)
-
+                    session_state["orthomosaic_metadata"] = metadata
                     with status(
                         f"Adding Backdown Image {image.name} to Orthomosaic {metadata}"
                     ), post(
@@ -215,10 +239,11 @@ with upload_tab:
                                 for response in response_stream.iter_lines():
                                     result = loads(response)
                                     info(result["status_message"])
-                                    metadata = result["orthomosaic_metadata"]
-                                    if metadata:
-                                        session_state["orthomosaic_metadata"] = metadata
-                                        success(metadata)
+                                    if not metadata:
+                                        metadata_ = result["orthomosaic_metadata"]
+                                        if metadata_:
+                                            metadata = metadata_
+                                            info(metadata)
                             except Exception as e:
                                 error(e)
                         else:
