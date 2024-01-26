@@ -77,7 +77,7 @@ with upload_azure_tab:
                         for response in response_stream.iter_lines():
                             result = loads(response)
                             message = result["status_message"]
-                            if message.startswith("Progress="):
+                            if message.startswith("Progress"):
                                 success(message)
                             else:
                                 info(message)
