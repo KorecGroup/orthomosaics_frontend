@@ -13,6 +13,7 @@ from streamlit import (
     progress,
     session_state,
     set_page_config,
+    slider,
     status,
     success,
     table,
@@ -34,15 +35,19 @@ upload_azure_tab, upload_local_tab, download_tab = tabs(
 
 with download_tab:
     with form("Download Orthomosaic"):
-        metadata = session_state.get("orthomosaic_metadata")
+        orthomosaic_id = session_state.get("orthomosaic_id")
         orthomosaic_id = text_input(
-            label="Orthomosaic id", value=metadata["id"] if metadata else ""
+            label="Orthomosaic id", value=orthomosaic_id if orthomosaic_id else ""
         )
-
+        resolution = slider("Image Resolution", min_value=0, max_value=100, value=10)
+        originX = 0
+        originY = 0
         submit_button = form_submit_button("Reload")
-        if submit_button:
+        if submit_button and orthomosaic_id:
             with status(f"Downloading tiles for orthomosaic {orthomosaic_id}..."), get(
-                endpoint + f"?orthomosaic_id={orthomosaic_id}", stream=True
+                endpoint
+                + f"?orthomosaic_id={orthomosaic_id}&resolution={resolution*0.01}&origin_x={originX}&origin_y={originY}",
+                stream=True,
             ) as response_stream:
                 if response_stream.ok:
                     try:
@@ -70,7 +75,9 @@ with upload_azure_tab:
         submit_button = form_submit_button("Process")
         if submit_button and location:
             with status(f"Downloading images from Azure Storage: {location}..."), post(
-                url=f"{endpoint}folder/", json=dict(location=location), stream=True
+                url=f"{endpoint}/update/folder/",
+                json=dict(location=location),
+                stream=True,
             ) as response_stream:
                 if response_stream.ok:
                     try:
@@ -160,42 +167,18 @@ with upload_local_tab:
         custom_metadata_button = toggle("Add to existing Orthomosaic")
 
         if custom_metadata_button:
-            metadata = session_state.get("orthomosaic_metadata")
+            orthomosaic_id = session_state.get("orthomosaic_id")
             try:
-                metadata = {
-                    "id": text_input(
-                        "Orthomosaic ID:", value=metadata["id"] if metadata else ""
-                    ),
-                    "x_m": float(
-                        text_input(
-                            "GPS X:", value=metadata["x_m"] if metadata else "0.0"
-                        )
-                    ),
-                    "y_m": float(
-                        text_input(
-                            "GPS Y:", value=metadata["y_m"] if metadata else "0.0"
-                        )
-                    ),
-                    "x_m_per_pixel": float(
-                        text_input(
-                            "X metres per pixel:",
-                            value=metadata["x_m_per_pixel"] if metadata else "0.0",
-                        )
-                    ),
-                    "y_m_per_pixel": float(
-                        text_input(
-                            "Y metres per pixel:",
-                            value=metadata["y_m_per_pixel"] if metadata else "0.0",
-                        )
-                    ),
-                }
-                if not metadata["id"].startswith("orthomosaic_"):
-                    raise ValueError(f"{metadata['id']} is an invalid id")
+                orthomosaic_id = text_input(
+                    "Orthomosaic ID:", value=orthomosaic_id if orthomosaic_id else ""
+                )
+                if not orthomosaic_id.startswith("orthomosaic_"):
+                    raise ValueError(f"{orthomosaic_id} is an invalid id")
             except ValueError as e:
                 error(e)
             session_state["metadata_confirmed"] = checkbox("Confirm")
         else:
-            metadata = None
+            orthomosaic_id = None
 
         if submit_button:
             if not any(image_files):
@@ -214,11 +197,11 @@ with upload_local_tab:
                 n = len(image_files)
                 for i, image in enumerate(image_files):
                     progress((i + 1) / n)
-                    session_state["orthomosaic_metadata"] = metadata
+                    session_state["orthomosaic_id"] = orthomosaic_id
                     with status(
-                        f"Adding Backdown Image {image.name} to Orthomosaic {metadata}"
+                        f"Adding Backdown Image {image.name} to Orthomosaic {orthomosaic_id}"
                     ), post(
-                        url=endpoint,
+                        url=f"{endpoint}update/image/",
                         json=dict(
                             backdown_image_b64=encode_image(image_bytes=image.read()),
                             gps=dict(
@@ -230,7 +213,7 @@ with upload_local_tab:
                                 roll_deg=settings.iloc[i]["roll[deg]"],
                                 pitch_deg=settings.iloc[i]["pitch[deg]"],
                             ),
-                            orthomosaic_metadata=metadata,
+                            orthomosaic_id=orthomosaic_id,
                         ),
                         stream=True,
                     ) as response_stream:
@@ -239,16 +222,12 @@ with upload_local_tab:
                                 for response in response_stream.iter_lines():
                                     result = loads(response)
                                     info(result["status_message"])
-                                    if not metadata:
-                                        metadata_ = result["orthomosaic_metadata"]
-                                        if metadata_:
-                                            metadata = metadata_
-                                            info(metadata)
+                                    session_state["orthomosaic_id"] = result[
+                                        "orthomosaic_id"
+                                    ]
                             except Exception as e:
                                 error(e)
                         else:
                             error(response_stream.reason)
                             error(response_stream.json())
-                success(
-                    f"Orthomosaic complete ({session_state['orthomosaic_metadata']})"
-                )
+                success(f"Orthomosaic complete ({session_state['orthomosaic_id']})")
