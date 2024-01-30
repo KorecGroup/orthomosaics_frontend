@@ -83,9 +83,13 @@ with upload_azure_tab:
                     try:
                         for response in response_stream.iter_lines():
                             result = loads(response)
+                            session_state["orthomosaic_id"] = result["orthomosaic_id"]
                             message = result["status_message"]
                             if message.startswith("Progress"):
                                 success(message)
+                                success(
+                                    f"Orthomosaics: {session_state['orthomosaic_id']}"
+                                )
                             else:
                                 info(message)
                     except Exception as e:
@@ -93,6 +97,7 @@ with upload_azure_tab:
                 else:
                     error(response_stream.reason)
                     error(loads(response_stream.json(), indent=2))
+            success(f"Orthomosaic complete ({session_state['orthomosaic_id']})")
 
 with upload_local_tab:
     with form("Upload Backdown Image"):
