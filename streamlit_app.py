@@ -1,3 +1,5 @@
+from base64 import b64decode, b64encode
+from io import BytesIO
 from json import loads
 
 from pandas import DataFrame, read_csv
@@ -13,7 +15,6 @@ from streamlit import (
     progress,
     session_state,
     set_page_config,
-    slider,
     status,
     success,
     table,
@@ -23,7 +24,14 @@ from streamlit import (
     warning,
 )
 
-from utils import decode_image, encode_image
+
+def encode_image(image_bytes: str) -> str:
+    return b64encode(image_bytes).decode()
+
+
+def decode_image(image_b64: str) -> BytesIO:
+    return BytesIO(b64decode(image_b64))
+
 
 set_page_config(page_title="Orthomosaics", page_icon="📍")
 endpoint = "https://ortho-mosaic.azurewebsites.net/orthomosaic/"
@@ -39,14 +47,14 @@ with download_tab:
         orthomosaic_id = text_input(
             label="Orthomosaic id", value=orthomosaic_id if orthomosaic_id else ""
         )
-        resolution = slider("Image Resolution", min_value=0, max_value=100, value=10)
+        resolution = 0.1
         originX = 0
         originY = 0
         submit_button = form_submit_button("Reload")
         if submit_button and orthomosaic_id:
             with status(f"Downloading tiles for orthomosaic {orthomosaic_id}..."), get(
                 endpoint
-                + f"?orthomosaic_id={orthomosaic_id}&resolution={resolution*0.01}&origin_x={originX}&origin_y={originY}",
+                + f"?orthomosaic_id={orthomosaic_id}&resolution={resolution}&origin_x={originX}&origin_y={originY}",
                 stream=True,
             ) as response_stream:
                 if response_stream.ok:
@@ -96,7 +104,6 @@ with upload_azure_tab:
                         error(e)
                 else:
                     error(response_stream.reason)
-                    error(loads(response_stream.json(), indent=2))
             success(f"Orthomosaic complete ({session_state['orthomosaic_id']})")
 
 with upload_local_tab:
@@ -234,5 +241,4 @@ with upload_local_tab:
                                 error(e)
                         else:
                             error(response_stream.reason)
-                            error(response_stream.json())
                 success(f"Orthomosaic complete ({session_state['orthomosaic_id']})")
