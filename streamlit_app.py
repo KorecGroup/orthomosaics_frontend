@@ -71,7 +71,6 @@ with download_tab:
                         error(e)
                 else:
                     error(response_stream.reason)
-                    error(loads(response_stream.json(), indent=2))
 
         image_bytes = session_state.get("orthomosaic")
         if image_bytes:
