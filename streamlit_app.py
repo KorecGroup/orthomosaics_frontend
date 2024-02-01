@@ -268,10 +268,10 @@ with upload_local_tab:
                                 y=settings.iloc[i]["projectedY[m]"],
                                 heading=settings.iloc[i]["heading[deg]"],
                             ),
-                            # backdown_image_metadata=dict(
-                            #    roll_deg=settings.iloc[i]["roll[deg]"],
-                            #    pitch_deg=settings.iloc[i]["pitch[deg]"],
-                            # ),
+                            backdown_image_metadata=dict(
+                                roll_deg=0.0,  # settings.iloc[i]["roll[deg]"],
+                                pitch_deg=-48.0,  # settings.iloc[i]["pitch[deg]"],
+                            ),
                             orthomosaic_id=orthomosaic_id,
                         ),
                         stream=True,
