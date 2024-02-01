@@ -38,8 +38,13 @@ set_page_config(page_title="Orthomosaics", page_icon="📍")
 endpoint = "https://ortho-mosaic.azurewebsites.net/orthomosaic/"
 
 
-upload_azure_tab, upload_local_tab, orthorectify_tab, download_tab = tabs(
-    ["Upload (via Azure Storage)", "Upload (locally)", "Orthorectify", "Download"]
+upload_azure_tab, upload_local_tab, download_tab, orthorectify_tab = tabs(
+    [
+        "Create Orthomosaic (via Azure Storage)",
+        "Update Orthomosaic",
+        "Download Orthomosaic",
+        "Orthorectify",
+    ]
 )
 
 
@@ -113,12 +118,13 @@ with orthorectify_tab:
         type=["png", "jpg", "jpeg"],
         accept_multiple_files=False,
     )
-    roll = number_input("Camera Roll")
-    pitch = number_input("Camera Pitch")
-    if uploaded_backdown_image and (pitch or roll):
+    if uploaded_backdown_image:
+        image(uploaded_backdown_image)
         with form("Orthorectify Backdown Image"):
+            roll = number_input(label="Camera Roll", value=-1.0)
+            pitch = number_input(label="Camera Pitch", value=-50.0)
             submit_button = form_submit_button("Orthorectify")
-            if submit_button:
+            if submit_button and (pitch or roll):
                 with post(
                     url="https://ortho-mosaic.azurewebsites.net/orthorectify/image/",
                     json=dict(
