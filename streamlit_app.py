@@ -12,6 +12,7 @@ from streamlit import (
     form_submit_button,
     image,
     info,
+    number_input,
     progress,
     session_state,
     set_page_config,
@@ -37,9 +38,10 @@ set_page_config(page_title="Orthomosaics", page_icon="📍")
 endpoint = "https://ortho-mosaic.azurewebsites.net/orthomosaic/"
 
 
-upload_azure_tab, upload_local_tab, download_tab = tabs(
-    ["Upload (via Azure Storage)", "Upload (locally)", "Download"]
+upload_azure_tab, upload_local_tab, orthorectify_tab, download_tab = tabs(
+    ["Upload (via Azure Storage)", "Upload (locally)", "Orthorectify", "Download"]
 )
+
 
 with download_tab:
     with form("Download Orthomosaic"):
@@ -104,6 +106,46 @@ with upload_azure_tab:
                 else:
                     error(response_stream.reason)
             success(f"Orthomosaic complete ({session_state['orthomosaic_id']})")
+
+with orthorectify_tab:
+    uploaded_backdown_image = file_uploader(
+        label="Backdown image",
+        type=["png", "jpg", "jpeg"],
+        accept_multiple_files=False,
+    )
+    roll = number_input("Camera Roll")
+    pitch = number_input("Camera Pitch")
+    if uploaded_backdown_image and (pitch or roll):
+        with form("Orthorectify Backdown Image"):
+            submit_button = form_submit_button("Orthorectify")
+            if submit_button:
+                with post(
+                    url="https://ortho-mosaic.azurewebsites.net/orthorectify/image/",
+                    json=dict(
+                        backdown_image_b64=encode_image(
+                            image_bytes=uploaded_backdown_image.read()
+                        ),
+                        gps=dict(
+                            x=0.0,
+                            y=0.0,
+                            heading=0.0,
+                        ),
+                        backdown_image_metadata=dict(
+                            roll_deg=roll,
+                            pitch_deg=pitch,
+                        ),
+                        orthomosaic_id=orthomosaic_id,
+                    ),
+                    stream=True,
+                ) as response:
+                    if response.ok:
+                        session_state["orthorectified"] = BytesIO(response.content)
+                    else:
+                        error(response_stream.reason)
+            image_bytes = session_state.get("orthorectified")
+            if image_bytes:
+                image(image_bytes)
+
 
 with upload_local_tab:
     with form("Upload Backdown Image"):
