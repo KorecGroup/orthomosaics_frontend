@@ -121,8 +121,8 @@ with orthorectify_tab:
     if uploaded_backdown_image:
         image(uploaded_backdown_image)
         with form("Orthorectify Backdown Image"):
-            roll = number_input(label="Camera Roll", value=-1.0)
-            pitch = number_input(label="Camera Pitch", value=-50.0)
+            roll = number_input(label="Camera Roll", value=0.0)
+            pitch = number_input(label="Camera Pitch", value=-48.0)
             submit_button = form_submit_button("Orthorectify")
             if submit_button and (pitch or roll):
                 with post(
@@ -268,10 +268,10 @@ with upload_local_tab:
                                 y=settings.iloc[i]["projectedY[m]"],
                                 heading=settings.iloc[i]["heading[deg]"],
                             ),
-                            backdown_image_metadata=dict(
-                                roll_deg=settings.iloc[i]["roll[deg]"],
-                                pitch_deg=settings.iloc[i]["pitch[deg]"],
-                            ),
+                            # backdown_image_metadata=dict(
+                            #    roll_deg=settings.iloc[i]["roll[deg]"],
+                            #    pitch_deg=settings.iloc[i]["pitch[deg]"],
+                            # ),
                             orthomosaic_id=orthomosaic_id,
                         ),
                         stream=True,
