@@ -66,14 +66,13 @@ with download_tab:
             ) as response_stream:
                 if response_stream.ok:
                     try:
+                        session_state["orthomosaic"] = ""
                         for response in response_stream.iter_lines():
                             result = loads(response)
-                            image_bytes = result["image"]
+                            image_bytes_chunk = result["image"]
                             info(result["status_message"])
-                            if image_bytes:
-                                session_state["orthomosaic"] = decode_image(
-                                    image_b64=image_bytes
-                                )
+                            if image_bytes_chunk:
+                                session_state["orthomosaic"] += image_bytes_chunk
                     except Exception as e:
                         error(e)
                 else:
@@ -81,7 +80,7 @@ with download_tab:
 
         image_bytes = session_state.get("orthomosaic")
         if image_bytes:
-            image(image_bytes)
+            image(decode_image(image_b64=image_bytes))
 
 with upload_azure_tab:
     with form("Upload Via Azure Storage"):
@@ -90,7 +89,7 @@ with upload_azure_tab:
         if submit_button and location:
             with status(f"Downloading images from Azure Storage: {location}..."), post(
                 url=f"{endpoint}/update/folder/",
-                json=dict(location=location),
+                json=dict(location=location, use_default_backdown_metadata=True),
                 stream=True,
             ) as response_stream:
                 if response_stream.ok:
