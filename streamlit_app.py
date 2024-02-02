@@ -89,7 +89,7 @@ with upload_azure_tab:
         if submit_button and location:
             with status(f"Downloading images from Azure Storage: {location}..."), post(
                 url=f"{endpoint}/update/folder/",
-                json=dict(location=location, use_default_backdown_metadata=True),
+                json=dict(location=location),
                 stream=True,
             ) as response_stream:
                 if response_stream.ok:
