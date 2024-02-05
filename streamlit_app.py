@@ -268,8 +268,10 @@ with upload_local_tab:
                                 heading=settings.iloc[i]["heading[deg]"],
                             ),
                             backdown_image_metadata=dict(
-                                roll_deg=0.0,  # settings.iloc[i]["roll[deg]"],
-                                pitch_deg=-48.0,  # settings.iloc[i]["pitch[deg]"],
+                                roll_deg=settings.iloc[i]["roll[deg]"],
+                                pitch_deg=settings.iloc[i]["pitch[deg]"]
+                                if 0 > settings.iloc[i]["pitch[deg]"] > -90
+                                else -48.0,
                             ),
                             orthomosaic_id=orthomosaic_id,
                         ),
