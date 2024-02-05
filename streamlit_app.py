@@ -184,9 +184,11 @@ with upload_local_tab:
         )
         settings_relevant = []
         settings_errors = 0
+        default_pitch = -48.0
+        settings_key_pitch = "pitch[deg]"
         setting_keys = (
             "roll[deg]",
-            "pitch[deg]",
+            settings_key_pitch,
             "heading[deg]",
             "projectedX[m]",
             "projectedY[m]",
@@ -212,6 +214,13 @@ with upload_local_tab:
                         settings_relevant.append({key: None for key in setting_keys})
                     else:
                         data = settings[settings["file_name"] == image_name]
+                        pitch = data[settings_key_pitch].values[0]
+                        pitch_is_valid = 0 > pitch > -90
+                        if not pitch_is_valid:
+                            warning(
+                                f"Invalid pitch {pitch}. Using default value {default_pitch}"
+                            )
+                            data[settings_key_pitch] = default_pitch
                         settings_relevant.append(
                             {key: data[key].values[0] for key in setting_keys}
                         )
@@ -269,9 +278,7 @@ with upload_local_tab:
                             ),
                             backdown_image_metadata=dict(
                                 roll_deg=settings.iloc[i]["roll[deg]"],
-                                pitch_deg=settings.iloc[i]["pitch[deg]"]
-                                if 0 > settings.iloc[i]["pitch[deg]"] > -90
-                                else -48.0,
+                                pitch_deg=settings.iloc[i]["pitch[deg]"],
                             ),
                             orthomosaic_id=orthomosaic_id,
                         ),
