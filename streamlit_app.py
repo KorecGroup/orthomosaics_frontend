@@ -91,14 +91,14 @@ with download_tab:
 with upload_azure_tab:
     with form("Upload Via Azure Storage"):
         location = text_input("Location (name of folder in azure storage)")
-        side_crop_pixels = number_input(
-            label="Side Crop (pixels)", value=0, min_value=0, max_value=1000
-        )
+        # side_crop_pixels = number_input(
+        #    label="Side Crop (pixels)", value=0, min_value=0, max_value=1000
+        # )
         submit_button = form_submit_button("Process")
         if submit_button and location:
             with status(f"Downloading images from Azure Storage: {location}..."), post(
                 url=f"{endpoint}/update/folder/",
-                json=dict(location=location, side_crop_pixels=side_crop_pixels),
+                json=dict(location=location),  # , side_crop_pixels=side_crop_pixels),
                 stream=True,
             ) as response_stream:
                 if response_stream.ok:
@@ -244,9 +244,9 @@ with upload_local_tab:
             table(settings.head())
 
         submit_button = form_submit_button("Submit Backdown Images")
-        side_crop_pixels = number_input(
-            label="Side Crop (pixels)", value=0, min_value=0, max_value=1000
-        )
+        # side_crop_pixels = number_input(
+        #    label="Side Crop (pixels)", value=0, min_value=0, max_value=1000
+        # )
         custom_metadata_button = toggle("Add to existing Orthomosaic")
 
         if custom_metadata_button:
@@ -297,7 +297,7 @@ with upload_local_tab:
                                 pitch_deg=settings.iloc[i]["pitch[deg]"],
                             ),
                             orthomosaic_id=orthomosaic_id,
-                            side_crop_pixels=side_crop_pixels,
+                            # side_crop_pixels=side_crop_pixels,
                         ),
                         stream=True,
                     ) as response_stream:
