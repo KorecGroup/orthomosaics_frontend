@@ -1,5 +1,7 @@
 from base64 import b64decode, b64encode
-from io import BytesIO
+from copy import deepcopy
+from csv import Sniffer
+from io import BytesIO, StringIO
 from json import loads
 
 from pandas import DataFrame, read_csv
@@ -32,6 +34,13 @@ def encode_image(image_bytes: str) -> str:
 
 def decode_image(image_b64: str) -> BytesIO:
     return BytesIO(b64decode(image_b64))
+
+
+def detect_delimiter(file: StringIO) -> str:
+    try:
+        return Sniffer().sniff(deepcopy(file).read()).delimiter
+    except Exception:
+        return ","
 
 
 set_page_config(page_title="Orthomosaics", page_icon="📍")
@@ -85,11 +94,14 @@ with download_tab:
 with upload_azure_tab:
     with form("Upload Via Azure Storage"):
         location = text_input("Location (name of folder in azure storage)")
+        side_crop_pixels = number_input(
+            label="Side Crop (pixels)", value=0, min_value=0, max_value=1000
+        )
         submit_button = form_submit_button("Process")
         if submit_button and location:
             with status(f"Downloading images from Azure Storage: {location}..."), post(
                 url=f"{endpoint}/update/folder/",
-                json=dict(location=location),
+                json=dict(location=location, side_crop_pixels=side_crop_pixels),
                 stream=True,
             ) as response_stream:
                 if response_stream.ok:
@@ -194,7 +206,9 @@ with upload_local_tab:
             "projectedY[m]",
         )
         if settings_file:
-            settings = read_csv(settings_file)
+            delimiter = detect_delimiter(file=settings_file)
+            warning(f"{delimiter} delimiter detected for settings file")
+            settings = read_csv(settings_file, delimiter=delimiter)
             for key in setting_keys:
                 if key not in settings:
                     error(
@@ -231,6 +245,9 @@ with upload_local_tab:
             table(settings.head())
 
         submit_button = form_submit_button("Submit Backdown Images")
+        side_crop_pixels = number_input(
+            label="Side Crop (pixels)", value=0, min_value=0, max_value=1000
+        )
         custom_metadata_button = toggle("Add to existing Orthomosaic")
 
         if custom_metadata_button:
@@ -281,6 +298,7 @@ with upload_local_tab:
                                 pitch_deg=settings.iloc[i]["pitch[deg]"],
                             ),
                             orthomosaic_id=orthomosaic_id,
+                            side_crop_pixels=side_crop_pixels,
                         ),
                         stream=True,
                     ) as response_stream:
