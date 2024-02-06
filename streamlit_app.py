@@ -37,10 +37,7 @@ def decode_image(image_b64: str) -> BytesIO:
 
 
 def detect_delimiter(file: StringIO) -> str:
-    try:
-        return Sniffer().sniff(deepcopy(file).read()).delimiter
-    except Exception:
-        return ","
+    return Sniffer().sniff(deepcopy(file).read()).delimiter
 
 
 set_page_config(page_title="Orthomosaics", page_icon="📍")
@@ -206,7 +203,9 @@ with upload_local_tab:
             "projectedY[m]",
         )
         if settings_file:
-            delimiter = detect_delimiter(file=settings_file)
+            delimiter = detect_delimiter(
+                file=StringIO(settings_file.getvalue().decode("utf-8"))
+            )
             warning(f"{delimiter} delimiter detected for settings file")
             settings = read_csv(settings_file, delimiter=delimiter)
             for key in setting_keys:
